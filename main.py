@@ -12,17 +12,17 @@ app.include_router(google_auth.router)
 
 
 origins = [
-    "http://localhost:3000",  # frontend dev server
-    "http://127.0.0.1:3000",  # sometimes needed
-    # Add other allowed origins here
+    "http://localhost:3000", 
+    "http://127.0.0.1:3000",
+      "https://auth-client-eight.vercel.app"  
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,        # Or ["*"] for testing only
+    allow_origins=origins,        
     allow_credentials=True,
-    allow_methods=["*"],          # This is important: OPTIONS, GET, POST, etc.
-    allow_headers=["*"],          # Allow Authorization and Content-Type
+    allow_methods=["*"],         
+    allow_headers=["*"],         
 )
 
 if __name__ == "__main__":

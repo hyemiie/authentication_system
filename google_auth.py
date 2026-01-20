@@ -5,6 +5,9 @@ import httpx
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import RedirectResponse
 from model.config import conn
+import urllib.parse
+import json
+
 
 router = APIRouter(tags=["google-auth"])
 
@@ -15,6 +18,12 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 SECRET_KEY = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440 
+
+ALLOWED_COMPANY_URLS = {
+    "https://git-chat.vercel.app",
+    "http://localhost:3000",
+    "https://another-app.example.com"
+}
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta = None):
     """Create JWT access token"""
@@ -27,178 +36,121 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
+
 @router.get("/google/login")
 async def google_login(company_url: str):
-    """Initiate Google OAuth login"""
-    try:
-        google_auth_url = (
-            f"https://accounts.google.com/o/oauth2/auth?"
-            f"client_id={GOOGLE_CLIENT_ID}&"
-            f"redirect_uri={GOOGLE_REDIRECT_URI}&"
-            f"scope=openid email profile&"
-            f"response_type=code&"
-            f"access_type=offline&"
-            f"prompt=consent"
-        )
-        return RedirectResponse(url=google_auth_url)
-    except Exception as e:
-        print(f"Error initiating Google login: {e}")
-        return RedirectResponse(url="{company_url}/auth?error=google_login_failed")
+    if company_url not in ALLOWED_COMPANY_URLS:
+        raise HTTPException(status_code=400, detail="Invalid company URL")
+
+    state_payload = {
+        "company_url": company_url
+    }
+
+    state = urllib.parse.quote(json.dumps(state_payload))
+
+    google_auth_url = (
+        "https://accounts.google.com/o/oauth2/auth?"
+        f"client_id={GOOGLE_CLIENT_ID}&"
+        f"redirect_uri={GOOGLE_REDIRECT_URI}&"
+        "scope=openid email profile&"
+        "response_type=code&"
+        f"state={state}&"
+        "access_type=offline&"
+        "prompt=consent"
+    )
+
+    return RedirectResponse(url=google_auth_url)
+
 
 @router.get("/auth/google/callback")
-async def google_callback(company_url: str, code: str = None, error: str = None):
-    """Handle Google OAuth callback"""
+async def google_callback(
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None
+):
     if error:
-        print(f"Google OAuth error: {error}")
-        return RedirectResponse(url=f"{company_url}/auth?error={error}")
-    
-    if not code:
-        print("No authorization code received")
-        return RedirectResponse(url="{company_url}/auth?error=no_authorization_code")
-    
+        raise HTTPException(status_code=400, detail=error)
+
+    if not code or not state:
+        raise HTTPException(status_code=400, detail="Missing code or state")
+
     try:
-        token_url = "https://oauth2.googleapis.com/token"
-        token_data = {
+        state_data = json.loads(urllib.parse.unquote(state))
+        company_url = state_data["company_url"]
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid state")
+
+    if company_url not in ALLOWED_COMPANY_URLS:
+        raise HTTPException(status_code=400, detail="Unapproved client")
+
+    token_response = await httpx.AsyncClient().post(
+        "https://oauth2.googleapis.com/token",
+        data={
             "client_id": GOOGLE_CLIENT_ID,
             "client_secret": GOOGLE_CLIENT_SECRET,
             "code": code,
             "grant_type": "authorization_code",
             "redirect_uri": GOOGLE_REDIRECT_URI,
-        }
-        
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(token_url, data=token_data)
-            token_json = token_response.json()
-        
-        if "access_token" not in token_json:
-            print(f"Token exchange failed: {token_json}")
-            return RedirectResponse(url="{company_url}/auth?error=token_exchange_failed")
-        
-        access_token = token_json["access_token"]
-        
-        user_info_url = f"https://www.googleapis.com/oauth2/v2/userinfo?access_token={access_token}"
-        
-        async with httpx.AsyncClient() as client:
-            user_response = await client.get(user_info_url)
-            user_info = user_response.json()
-        
-        if "email" not in user_info:
-            print(f"Failed to get user info: {user_info}")
-            return RedirectResponse(url="{company_url}/auth?error=failed_to_get_user_info")
-        
-        email = user_info.get('email')
-        name = user_info.get('name', email.split('@')[0])  
-        google_id = user_info.get('id')
-        picture = user_info.get('picture')
-        
-        print(f"Google user info: {user_info}")
-        try:
-            with conn.cursor() as cur:
-                cur.execute("SELECT id, username, email FROM users WHERE email = %s", (email,))
-                existing_user = cur.fetchone()
+        },
+    )
 
-                if existing_user:
-                    cur.execute(
-                        """UPDATE users SET 
-                        username = %s, 
-                        google_id = %s, 
-                        profile_picture = %s
-                        WHERE email = %s
-                        RETURNING id, username, email""",
-                        (name, google_id, picture, email)
-                    )
-                else:
-                    cur.execute(
-                        """INSERT INTO users (email, username, google_id, is_google_user, profile_picture) 
-                        VALUES (%s, %s, %s, %s, %s) 
-                        RETURNING id, username, email""",
-                        (email, name, google_id, True, picture)
-                    )
+    token_json = token_response.json()
 
-                user_record = cur.fetchone() 
-                conn.commit()
+    print("HELLOOO", token_json)
 
-                if not user_record:
-                    raise Exception("Failed to create or update user")
+    if "access_token" not in token_json:
+        print("no access token", token_json)
+        return RedirectResponse(f"{company_url}/auth?error=token_exchange_failed")
 
-        except Exception as db_error:
-            print(f"Database error: {db_error}")
-            return RedirectResponse(url="{company_url}/auth?error=database_error")
+    access_token = token_json["access_token"]
 
-            
-        user_data = {
+    user_response = await httpx.AsyncClient().get(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    user_info = user_response.json()
+    print("HIIIII", user_info)
+    if "email" not in user_info:
+        print("no email", user_info)
+        return RedirectResponse(f"{company_url}/auth?error=userinfo_failed")
+
+    email = user_info["email"]
+    name = user_info.get("name", email.split("@")[0])
+    google_id = user_info.get("id")
+    picture = user_info.get("picture")
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+        user = cur.fetchone()
+
+        if user:
+            cur.execute(
+                """UPDATE users SET username=%s, google_id=%s, profile_picture=%s
+                   WHERE email=%s RETURNING id, username, email""",
+                (name, google_id, picture, email),
+            )
+        else:
+            cur.execute(
+                """INSERT INTO users (email, username, google_id, is_google_user, profile_picture)
+                   VALUES (%s, %s, %s, true, %s)
+                   RETURNING id, username, email""",
+                (email, name, google_id, picture),
+            )
+
+        user_record = cur.fetchone()
+        conn.commit()
+
+    jwt_token = create_access_token({
+        "sub": email,
+        "user": {
             "id": user_record[0],
             "username": user_record[1],
             "email": user_record[2],
             "is_google_user": True,
-            "profile_picture": picture
+            "profile_picture": picture,
         }
-        
-        jwt_token = create_access_token(data={"sub": email, "user": user_data})
-        
-        frontend_url = f"{company_url}/auth?token={jwt_token}"
-        return RedirectResponse(url=frontend_url)
-        
-    except httpx.RequestError as e:
-        print(f"HTTP request error: {e}")
-        return RedirectResponse(url="{company_url}/auth?error=network_error")
-    except Exception as e:
-        print(f"Unexpected error in Google callback: {e}")
-        return RedirectResponse(url="{company_url}/auth?error=unexpected_error")
+    })
 
-@router.post("/google/logout")
-async def google_logout():
-    """Handle Google logout (JWT is stateless, so just return success)"""
-    return {"message": "Logged out successfully", "status": "success"}
-
-@router.get("/google/user")
-async def get_google_user_info(request: Request):
-    """Get current Google user info (requires JWT token in Authorization header)"""
-    from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-    from fastapi import Depends
-    
-    security = HTTPBearer()
-    
-    def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-        try:
-            payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-            return payload
-        except jwt.PyJWTError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token"
-            )
-    
-    try:
-        auth_header = request.headers.get("authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing or invalid authorization header"
-            )
-        
-        token = auth_header.split(" ")[1]
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        
-        return {
-            "authenticated": True,
-            "user": payload.get("user"),
-            "expires": payload.get("exp")
-        }
-        
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired"
-        )
-    except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
-        )
-    except Exception as e:
-        print(f"Error verifying token: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Server error"
-        )
+    return RedirectResponse(f"{company_url}/auth?token={jwt_token}")

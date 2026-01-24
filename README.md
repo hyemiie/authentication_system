@@ -1,6 +1,11 @@
 # Authentication System
 
-## 1. Project Overview
+<div>
+  <img src="https://i.ibb.co/Pv5ZrnC2/auth-login.png" alt="auth-login" width="49%" />
+  <img src="https://i.ibb.co/vFPPNY4/authscreen.png" alt="authscreen" width="49%" />
+</div>
+
+##  Project Overview
 This is a modern authentication system built to provide **secure, scalable, and flexible user authentication** for web applications. It supports:
 
 - Standard **email/password login and signup**  
@@ -12,7 +17,7 @@ It’s designed to help developers implement authentication quickly while follow
 
 ---
 
-## 2. Key Features
+## Key Features
 
 - **Email & Password Authentication**: Handles registration and login with hashed passwords.  
 
@@ -25,7 +30,7 @@ It’s designed to help developers implement authentication quickly while follow
 - **API Endpoints**: Exposes endpoints for login, signup, MFA setup, and user data retrieval.
 
 
-## 3. Technologies Used
+## Technologies Used
 - **Frontend:** React, React Router  
 - **Backend:** Python, FastAPI  
 - **Database:** PostgreSQL  
@@ -37,7 +42,7 @@ It’s designed to help developers implement authentication quickly while follow
 
 ---
 
-## 4. How to run the server locally
+## How to run the server locally
 
 ### Backend Setup
 1. Clone the repository:  
@@ -80,7 +85,7 @@ Backend runs at http://127.0.0.1:8000
 | `/verify_mfa`           | POST   | Verifies TOTP code during MFA login         |
 | `/user/{email}`         | GET    | Fetches user data by email                  |
 
-## 5. How It Works
+## How It Works
 
 1. **Email/Password Registration & Login**  
    - User signs up with email, password, and name.  

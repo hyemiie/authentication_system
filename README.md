@@ -17,7 +17,8 @@ It’s designed to help developers implement authentication quickly while follow
 <a href="https://ibb.co/390yTqhx"><img src="https://i.ibb.co/Pv5ZrnC2/auth-login.png" alt="auth-login" border="0" /></a>
 
 
-<a href="https://ibb.co/8C55ycg"><img src="https://i.ibb.co/8C55ycg/authscreen.png" alt="authscreen" border="0" /></a>
+<a href="https://ibb.co/8C55ycg"><img src="https://i.ibb.co/vFPPNY4/authscreen.png" alt="authscreen" border="0" /></a>
+
 
 ## Key Features
 

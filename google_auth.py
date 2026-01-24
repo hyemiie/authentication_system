@@ -22,7 +22,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 ALLOWED_COMPANY_URLS = {
     "https://git-chat.vercel.app",
     "http://localhost:3000",
-    "https://another-app.example.com"
+    "https://gitxen-zq9s.vercel.app",
+    "https://auth-client-eight.vercel.app/"
 }
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta = None):
@@ -97,10 +98,8 @@ async def google_callback(
 
     token_json = token_response.json()
 
-    print("HELLOOO", token_json)
 
     if "access_token" not in token_json:
-        print("no access token", token_json)
         return RedirectResponse(f"{company_url}/auth?error=token_exchange_failed")
 
     access_token = token_json["access_token"]
@@ -111,9 +110,7 @@ async def google_callback(
     )
 
     user_info = user_response.json()
-    print("HIIIII", user_info)
     if "email" not in user_info:
-        print("no email", user_info)
         return RedirectResponse(f"{company_url}/auth?error=userinfo_failed")
 
     email = user_info["email"]

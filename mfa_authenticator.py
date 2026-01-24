@@ -62,7 +62,6 @@ def setup_mfa(email: str):
         }
         
     except Exception as e:
-        print("E", e)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if conn:
@@ -72,7 +71,6 @@ def setup_mfa(email: str):
 
 @router.post("/verify_mfa")
 def verify_mfa(email: str, code: str):
-    print("email", email, code)
     conn = None
     try:
         conn = pg_pool.getconn()
@@ -87,7 +85,6 @@ def verify_mfa(email: str, code: str):
             code = str(code).strip()
             
             totp = pyotp.TOTP(user_secret, digits=6, interval=30)
-            print("totp", user_secret)
             
             is_valid = totp.verify(code, valid_window=1)
 

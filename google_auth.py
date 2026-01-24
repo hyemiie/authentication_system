@@ -23,7 +23,7 @@ ALLOWED_COMPANY_URLS = {
     "https://git-chat.vercel.app",
     "http://localhost:3000",
     "https://gitxen-zq9s.vercel.app",
-    "https://auth-client-eight.vercel.app/"
+    "https://auth-client-eight.vercel.app"
 }
 
 def create_access_token(data: dict, expires_delta: datetime.timedelta = None):

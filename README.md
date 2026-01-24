@@ -1,9 +1,5 @@
 # Authentication System
 
-<div>
-  <img src="https://i.ibb.co/Pv5ZrnC2/auth-login.png" alt="auth-login" width="49%" />
-  <img src="https://i.ibb.co/vFPPNY4/authscreen.png" alt="authscreen" width="49%" />
-</div>
 
 ##  Project Overview
 This is a modern authentication system built to provide **secure, scalable, and flexible user authentication** for web applications. It supports:
@@ -19,7 +15,7 @@ It’s designed to help developers implement authentication quickly while follow
 
 
 <a href="https://ibb.co/390yTqhx"><img src="https://i.ibb.co/Pv5ZrnC2/auth-login.png" alt="auth-login" border="0" /></a>
-<a href="https://ibb.co/8C55ycg"><img src="https://i.ibb.co/vFPPNY4/authscreen.png" alt="authscreen" border="0" /></a>
+
 
 ## Key Features
 
@@ -32,7 +28,6 @@ It’s designed to help developers implement authentication quickly while follow
 - **JWT-based Authentication**: Provides stateless sessions with user information stored in tokens.  
 
 - **API Endpoints**: Exposes endpoints for login, signup, MFA setup, and user data retrieval.
-[url=https://ibb.co/8C55ycg][img]https://i.ibb.co/vFPPNY4/authscreen.png[/img][/url]
 
 ## Technologies Used
 - **Frontend:** React, React Router  

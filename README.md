@@ -32,7 +32,7 @@ It’s designed to help developers implement authentication quickly while follow
 - **JWT-based Authentication**: Provides stateless sessions with user information stored in tokens.  
 
 - **API Endpoints**: Exposes endpoints for login, signup, MFA setup, and user data retrieval.
-
+[url=https://ibb.co/8C55ycg][img]https://i.ibb.co/vFPPNY4/authscreen.png[/img][/url]
 
 ## Technologies Used
 - **Frontend:** React, React Router  
